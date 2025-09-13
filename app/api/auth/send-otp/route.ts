@@ -4,9 +4,6 @@ import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
-// In-memory OTP store (in production, use Redis or database)
-const otpStore: { [key: string]: { otp: string; timestamp: number } } = {};
-
 export async function POST(request: NextRequest) {
   try {
     const { phone } = await request.json();
@@ -28,45 +25,72 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // Generate OTP
+    // Generate 6-digit OTP
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const timestamp = Date.now();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store OTP in memory (expires in 5 minutes)
-    otpStore[phone] = { otp, timestamp };
+    // Check if user exists
+    let user = await User.findOne({ phone });
+    let isNewUser = false;
 
-    // Clean up expired OTPs
-    Object.keys(otpStore).forEach(key => {
-      if (Date.now() - otpStore[key].timestamp > 5 * 60 * 1000) {
-        delete otpStore[key];
-      }
-    });
-
-    console.log(`OTP for ${phone}: ${otp}`); // For development - remove in production
-
-    // In development, we'll skip actual SMS sending
-    // In production, uncomment and configure SMS service
-    /*
-    try {
-      const smsRes = await fetch(
-        `${process.env.SMS_BASE_URL}?API=${encodeURIComponent(
-          process.env.SMS_API_KEY!
-        )}&PHONE=${encodeURIComponent(phone)}&OTP=${encodeURIComponent(otp)}`
-      );
-      const smsText = await smsRes.text();
-      console.log('SMS Response:', smsText);
-    } catch (smsError) {
-      console.error('SMS Error:', smsError);
-      // Continue anyway for development
+    if (!user) {
+      // Create new user with OTP (registration will be completed after OTP verification)
+      user = new User({
+        phone,
+        otp,
+        otpExpires,
+        isVerified: false,
+      });
+      isNewUser = true;
+    } else {
+      // Update existing user with new OTP
+      user.otp = otp;
+      user.otpExpires = otpExpires;
     }
-    */
 
-    return NextResponse.json({
-      success: true,
-      message: "OTP sent successfully",
-      // Remove this in production
-      developmentOtp: otp
-    });
+    await user.save();
+
+    // Send SMS using Renflair API
+    try {
+      const smsUrl = `${process.env.SMS_BASE_URL}?API=${encodeURIComponent(
+        process.env.SMS_API_KEY!
+      )}&PHONE=${encodeURIComponent(phone)}&OTP=${encodeURIComponent(otp)}`;
+
+      console.log('Sending SMS to:', phone, 'with OTP:', otp);
+      
+      const smsResponse = await fetch(smsUrl);
+      const smsText = await smsResponse.text();
+      
+      console.log('SMS API Response:', smsText);
+
+      // Check if SMS was sent successfully
+      if (!smsResponse.ok) {
+        console.error('SMS API Error:', smsText);
+        // Don't fail the request if SMS fails, but log it
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "OTP sent successfully",
+        isNewUser,
+        // Include SMS response for debugging (remove in production)
+        smsResponse: smsText
+      });
+
+    } catch (smsError) {
+      console.error('SMS sending error:', smsError);
+      
+      // Still return success but note the SMS issue
+      return NextResponse.json({
+        success: true,
+        message: "OTP generated but SMS delivery may have failed",
+        isNewUser,
+        warning: "SMS service temporarily unavailable",
+        // For development - show OTP in response (remove in production)
+        developmentOtp: otp
+      });
+    }
+
   } catch (error: any) {
     console.error("Error sending OTP:", error);
     return NextResponse.json(
@@ -75,6 +99,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Export the OTP store for use in verify-otp
-export { otpStore };

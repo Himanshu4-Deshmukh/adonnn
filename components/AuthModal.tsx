@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Phone, Shield } from 'lucide-react';
+import { Loader2, Phone, Shield, User } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
-  const [requiresRegistration, setRequiresRegistration] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
   const { toast } = useToast();
 
   const locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat'];
@@ -50,9 +50,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
       if (data.success) {
         setStep('otp');
+        setIsNewUser(data.isNewUser);
+        
+        let message = `OTP sent to ${phone}`;
+        if (data.warning) {
+          message += ` (${data.warning})`;
+        }
+        if (data.developmentOtp) {
+          message += ` - Dev OTP: ${data.developmentOtp}`;
+        }
+        
         toast({
           title: 'OTP Sent!',
-          description: `OTP sent to ${phone}. ${data.developmentOtp ? `Development OTP: ${data.developmentOtp}` : ''}`,
+          description: message,
         });
       } else {
         toast({
@@ -83,20 +93,27 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       return;
     }
 
+    // If it's a new user and we're not in register step, move to register
+    if (isNewUser && step !== 'register') {
+      setStep('register');
+      return;
+    }
+
+    // If in register step, validate name and location
+    if (step === 'register' && (!name.trim() || !location.trim())) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill in your name and location',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: any = { phone, otp };
       
-      if (requiresRegistration || step === 'register') {
-        if (!name.trim() || !location.trim()) {
-          toast({
-            title: 'Missing Information',
-            description: 'Please fill in your name and location',
-            variant: 'destructive',
-          });
-          setLoading(false);
-          return;
-        }
+      if (step === 'register') {
         payload.name = name.trim();
         payload.location = location.trim();
       }
@@ -121,7 +138,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         resetForm();
       } else {
         if (data.requiresRegistration) {
-          setRequiresRegistration(true);
           setStep('register');
           toast({
             title: 'Registration Required',
@@ -153,7 +169,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setOtp('');
     setName('');
     setLocation('');
-    setRequiresRegistration(false);
+    setIsNewUser(false);
   };
 
   const handleClose = () => {
@@ -180,7 +196,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             )}
             {step === 'register' && (
               <>
-                <Shield className="w-5 h-5" />
+                <User className="w-5 h-5" />
                 Complete Registration
               </>
             )}
@@ -247,6 +263,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 />
                 <p className="text-sm text-gray-500">
                   OTP sent to {phone}
+                  {isNewUser && (
+                    <span className="block text-blue-600 font-medium">
+                      New user - Registration required after verification
+                    </span>
+                  )}
                 </p>
               </div>
               <Button 
@@ -259,8 +280,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Verifying...
                   </>
+                ) : isNewUser ? (
+                  'Verify & Continue'
                 ) : (
-                  'Verify OTP'
+                  'Verify & Login'
                 )}
               </Button>
               <Button 
@@ -276,6 +299,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
           {step === 'register' && (
             <>
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-600">
+                  Complete your profile to get started
+                </p>
+              </div>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name *</Label>

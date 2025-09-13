@@ -5,11 +5,6 @@ import { generateToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-// Import the OTP store from send-otp route
-let otpStore: { [key: string]: { otp: string; timestamp: number } } = {};
-
-// Since we can't directly import from the other route file in this setup,
-// we'll recreate the store logic here
 export async function POST(request: NextRequest) {
   try {
     const { phone, otp, name, location } = await request.json();
@@ -39,12 +34,34 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // For development, we'll use a simple OTP validation
-    // In production, you should validate against your OTP store
-    
-    // Check if user exists
-    let user = await User.findOne({ phone });
-    const isNewUser = !user;
+    // Find user with phone and valid OTP
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'User not found. Please request a new OTP.' 
+      }, { status: 404 });
+    }
+
+    // Check if OTP matches
+    if (!user.otp || user.otp !== otp) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid OTP. Please check and try again.' 
+      }, { status: 400 });
+    }
+
+    // Check if OTP has expired
+    if (!user.otpExpires || user.otpExpires < new Date()) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'OTP has expired. Please request a new one.' 
+      }, { status: 400 });
+    }
+
+    // Check if this is a new user (needs registration)
+    const isNewUser = !user.name || !user.location;
 
     if (isNewUser) {
       // New user registration - require name and location
@@ -56,20 +73,18 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Create new user
-      user = new User({
-        phone,
-        name: name.trim(),
-        location: location.trim(),
-        isVerified: true,
-      });
-      await user.save();
-    } else {
-      // Existing user login
-      user.isVerified = true;
-      user.lastLogin = new Date();
-      await user.save();
+      // Complete user registration
+      user.name = name.trim();
+      user.location = location.trim();
     }
+
+    // Clear OTP and mark as verified
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    user.isVerified = true;
+    user.lastLogin = new Date();
+
+    await user.save();
 
     // Generate JWT token
     const token = generateToken(user._id.toString());

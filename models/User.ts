@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    required: true,
     trim: true,
     minlength: 2,
     maxlength: 50
@@ -31,7 +30,6 @@ const userSchema = new mongoose.Schema({
   },
   location: {
     type: String,
-    required: true,
     trim: true,
     minlength: 2,
     maxlength: 50
@@ -59,5 +57,6 @@ const userSchema = new mongoose.Schema({
 // Index for better query performance
 userSchema.index({ phone: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ otpExpires: 1 }, { expireAfterSeconds: 0 }); // Auto-cleanup expired OTPs
 
 export default mongoose.models.User || mongoose.model('User', userSchema);

@@ -1,27 +1,52 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
-import { User, Search, Plus, Calendar, ShoppingBag, UserCircle } from 'lucide-react';
-import AuthModal from '@/components/AuthModal';
-import SwipeableCard from '@/components/SwipeableCard';
-import CreateModal from '@/components/CreateModal';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import {
+  User,
+  Search,
+  Plus,
+  Calendar,
+  ShoppingBag,
+  UserCircle,
+} from "lucide-react";
+import AuthModal from "@/components/AuthModal";
+import SwipeableCard from "@/components/SwipeableCard";
+import CreateModal from "@/components/CreateModal";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-  const [currentTab, setCurrentTab] = useState<'ads' | 'events'>('ads');
+  const [currentTab, setCurrentTab] = useState<"ads" | "events">("ads");
   const [items, setItems] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const { toast } = useToast();
 
-  const locations = ['all', 'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Surat'];
+  const locations = [
+    "all",
+    "Mumbai",
+    "Delhi",
+    "Bangalore",
+    "Chennai",
+    "Kolkata",
+    "Hyderabad",
+    "Pune",
+    "Ahmedabad",
+    "Jaipur",
+    "Surat",
+  ];
 
   useEffect(() => {
     checkAuth();
@@ -34,23 +59,23 @@ export default function Home() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch("/api/auth/me");
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
     }
   };
 
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const endpoint = currentTab === 'ads' ? '/api/ads' : '/api/events';
+      const endpoint = currentTab === "ads" ? "/api/ads" : "/api/events";
       const params = new URLSearchParams();
-      if (selectedLocation !== 'all') {
-        params.append('location', selectedLocation);
+      if (selectedLocation !== "all") {
+        params.append("location", selectedLocation);
       }
 
       const response = await fetch(`${endpoint}?${params}`);
@@ -61,17 +86,17 @@ export default function Home() {
         setCurrentIndex(0);
       } else {
         toast({
-          title: 'Error',
-          description: data.error || 'Failed to fetch data',
-          variant: 'destructive',
+          title: "Error",
+          description: data.error || "Failed to fetch data",
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error fetching items:', error);
+      console.error("Error fetching items:", error);
       toast({
-        title: 'Error',
-        description: 'Network error. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -85,10 +110,10 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('/api/like', {
-        method: 'POST',
+      const response = await fetch("/api/like", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ itemId, type }),
       });
@@ -96,13 +121,13 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) {
         toast({
-          title: 'Error',
-          description: data.error || 'Failed to like item',
-          variant: 'destructive',
+          title: "Error",
+          description: data.error || "Failed to like item",
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error liking item:', error);
+      console.error("Error liking item:", error);
     }
   };
 
@@ -111,7 +136,7 @@ export default function Home() {
       setCurrentIndex(currentIndex + 1);
     } else {
       toast({
-        title: 'No more items',
+        title: "No more items",
         description: `You've seen all ${currentTab}!`,
       });
     }
@@ -127,14 +152,14 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
       toast({
-        title: 'Success',
-        description: 'Logged out successfully',
+        title: "Success",
+        description: "Logged out successfully",
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -149,24 +174,21 @@ export default function Home() {
             <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-lg">LA</span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Local Explorer
-              </h1>
-              <p className="text-xs text-gray-500">Discover nearby</p>
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Location Filter */}
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <Select
+              value={selectedLocation}
+              onValueChange={setSelectedLocation}
+            >
               <SelectTrigger className="w-28 h-9 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
                   <SelectItem key={location} value={location}>
-                    {location === 'all' ? 'All' : location}
+                    {location === "all" ? "All" : location}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -174,13 +196,19 @@ export default function Home() {
 
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {user.name}
+                </span>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               </div>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setAuthModalOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAuthModalOpen(true)}
+              >
                 <User className="w-4 h-4 mr-1" />
                 Login
               </Button>
@@ -191,26 +219,6 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="container mx-auto p-4 pb-24">
-        {/* Tab Selector */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={currentTab === 'ads' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setCurrentTab('ads')}
-          >
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            Ads ({items.length})
-          </Button>
-          <Button
-            variant={currentTab === 'events' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setCurrentTab('events')}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Events ({items.length})
-          </Button>
-        </div>
-
         {/* Cards Container */}
         {loading ? (
           <div className="flex items-center justify-center h-96">
@@ -227,14 +235,14 @@ export default function Home() {
             </p>
             <Button onClick={handleCreateClick}>
               <Plus className="w-4 h-4 mr-2" />
-              Create {currentTab === 'ads' ? 'Ad' : 'Event'}
+              Create {currentTab === "ads" ? "Ad" : "Event"}
             </Button>
           </div>
         ) : (
           currentItem && (
             <SwipeableCard
               item={currentItem}
-              type={currentTab === 'ads' ? 'ad' : 'event'}
+              type={currentTab === "ads" ? "ad" : "event"}
               onLike={handleLike}
               onSwipeLeft={handleSwipeLeft}
               onSwipeRight={() => {}}
@@ -248,25 +256,25 @@ export default function Home() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="flex items-center justify-around py-3">
           <Button
-            variant={currentTab === 'ads' ? 'default' : 'ghost'}
+            variant={currentTab === "ads" ? "default" : "ghost"}
             size="sm"
             className="flex-col h-auto py-2"
-            onClick={() => setCurrentTab('ads')}
+            onClick={() => setCurrentTab("ads")}
           >
             <ShoppingBag className="w-5 h-5 mb-1" />
             <span className="text-xs">Ads</span>
           </Button>
-          
+
           <Button
-            variant={currentTab === 'events' ? 'default' : 'ghost'}
+            variant={currentTab === "events" ? "default" : "ghost"}
             size="sm"
             className="flex-col h-auto py-2"
-            onClick={() => setCurrentTab('events')}
+            onClick={() => setCurrentTab("events")}
           >
             <Calendar className="w-5 h-5 mb-1" />
             <span className="text-xs">Events</span>
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -276,12 +284,12 @@ export default function Home() {
             <Plus className="w-5 h-5 mb-1" />
             <span className="text-xs">Create</span>
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
             className="flex-col h-auto py-2"
-            onClick={() => user ? setUser(null) : setAuthModalOpen(true)}
+            onClick={() => (user ? setUser(null) : setAuthModalOpen(true))}
           >
             <UserCircle className="w-5 h-5 mb-1" />
             <span className="text-xs">Profile</span>
@@ -299,12 +307,14 @@ export default function Home() {
       <CreateModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        type={currentTab === 'ads' ? 'ad' : 'event'}
+        type={currentTab === "ads" ? "ad" : "event"}
         onSuccess={() => {
           fetchItems();
           toast({
-            title: 'Success',
-            description: `${currentTab === 'ads' ? 'Ad' : 'Event'} created successfully!`,
+            title: "Success",
+            description: `${
+              currentTab === "ads" ? "Ad" : "Event"
+            } created successfully!`,
           });
         }}
       />
